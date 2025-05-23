@@ -3,6 +3,7 @@ package controlador;
 import java.sql.*;
 
 public class Conexion2 {
+
     private Connection conexion = null;
     private Statement s = null;
     private ResultSet rs = null;
@@ -47,10 +48,18 @@ public class Conexion2 {
     }
 
     public void cerrarConexion() throws SQLException {
-        if (rs != null && !rs.isClosed()) rs.close();
-        if (ps != null && !ps.isClosed()) ps.close();
-        if (s != null && !s.isClosed()) s.close();
-        if (conexion != null && !conexion.isClosed()) conexion.close();
+        if (rs != null && !rs.isClosed()) {
+            rs.close();
+        }
+        if (ps != null && !ps.isClosed()) {
+            ps.close();
+        }
+        if (s != null && !s.isClosed()) {
+            s.close();
+        }
+        if (conexion != null && !conexion.isClosed()) {
+            conexion.close();
+        }
     }
 
     // Opcional para acceder a la conexión si necesitas hacer prepared statements en JSP

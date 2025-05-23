@@ -1,16 +1,24 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@ page session="true" import="java.sql.*, java.util.*, controlador.Conexion2" %>
+<%@ page import="java.util.*, modelo.MenuDelDiaDAO, modelo.MenuDelDiaDAO.MenuDelDia" %>
 <%
-    HttpSession Sesion = request.getSession(false);
-    if (Sesion == null || Sesion.getAttribute("id_usuario") == null) {
+    HttpSession sesion = request.getSession(false);
+    if (sesion == null || sesion.getAttribute("id_usuario") == null) {
 %>
 <jsp:forward page="Login.jsp">
     <jsp:param name="error" value="Es obligatorio identificarse"/>
 </jsp:forward>
 <%
+        return;
     }
-    String plantel = (String) session.getAttribute("plantel");
-    Conexion2 con = new Conexion2();
+
+    String plantel = (String) sesion.getAttribute("plantel");
+    MenuDelDiaDAO dao = new MenuDelDiaDAO();
+    Map<String, Map<String, MenuDelDia>> semana = dao.obtenerMenuSemanal(plantel);
+
+    String[] dias = {"Lunes", "Martes", "Miércoles", "Jueves", "Viernes"};
+    Calendar cal = Calendar.getInstance();
+    cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
 %>
 <!DOCTYPE html>
 <html>
@@ -47,20 +55,6 @@
                 width: 100%;
                 font-weight: bold;
             }
-            .registro form {
-                display: inline;
-            }
-            .navbar-custom {
-                background-color: #3c1224;
-            }
-            .navbar-custom .navbar-brand,
-            .navbar-custom .nav > li > a {
-                color: white;
-            }
-            .navbar-custom .nav > li > a:hover {
-                background-color: #27487D;
-                color: white;
-            }
         </style>
     </head>
     <body>
@@ -68,87 +62,66 @@
         <div class="container">
             <hr><!-- comment -->
             <hr><!-- comment -->
-            <h3>Menú semanal - Plantel <%= plantel %></h3>
+
+            <h3>Menú semanal - Plantel <%= plantel%></h3>
             <div class="calendario">
                 <%
-                    String[] dias = {"Lunes", "Martes", "Miércoles", "Jueves", "Viernes"};
-                    Calendar cal = Calendar.getInstance();
-                    cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
-                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
-
                     for (int i = 0; i < 5; i++) {
                         String fecha = sdf.format(cal.getTime());
-
-                        // Consulta desayuno parametrizada
-                        String sqlDesayuno = "SELECT id, plato_principal FROM menu_deldia WHERE fecha = ? AND tipo = 'Desayuno' AND plantel = ?";
-                        con.setRs(sqlDesayuno, fecha, plantel);
-                        ResultSet rsDes = con.getRs();
-                        boolean hayDesayuno = rsDes.next();
-                        String desayuno = null;
-                        String idDesayuno = null;
-                        if (hayDesayuno) {
-                            desayuno = rsDes.getString("plato_principal");
-                            idDesayuno = rsDes.getString("id");
-                        }
-                        rsDes.close();
-
-                        // Consulta comida parametrizada
-                        String sqlComida = "SELECT id, plato_principal FROM menu_deldia WHERE fecha = ? AND tipo = 'Comida' AND plantel = ?";
-                        con.setRs(sqlComida, fecha, plantel);
-                        ResultSet rsCom = con.getRs();
-                        boolean hayComida = rsCom.next();
-                        String comida = null;
-                        String idComida = null;
-                        if (hayComida) {
-                            comida = rsCom.getString("plato_principal");
-                            idComida = rsCom.getString("id");
-                        }
-                        rsCom.close();
+                        Map<String, MenuDelDia> dia = semana.get(fecha);
                 %>
                 <div class="dia">
-                    <h5><%= dias[i] %><br><small><%= fecha %></small></h5>
+                    <h5><%= dias[i]%><br><small><%= fecha%></small></h5>
 
-                    <% if (hayDesayuno) { %>
+                    <%-- DESAYUNO --%>
+                    <%
+                        MenuDelDia desayuno = (dia != null) ? dia.get("Desayuno") : null;
+                        if (desayuno != null) {
+                    %>
                     <div class="registro text-primary">
-                        ☀ <strong style="color:#1a73e8;">Desayuno:</strong> <%= desayuno %>
+                        ☀ <strong>Desayuno:</strong> <%= desayuno.platoPrincipal%>
                         <form method="get" action="AgregarMenu.jsp">
-                            <input type="hidden" name="id" value="<%= idDesayuno %>">
+                            <input type="hidden" name="id" value="<%= desayuno.id%>">
                             <button class="btn btn-warning btn-sm">✏️</button>
                         </form>
-                        <form action="AdminCRUD.jsp" method="post" onsubmit="return confirm('¿Eliminar desayuno del <%= fecha %>?');">
-                            <input type="hidden" name="fecha" value="<%= fecha %>">
-                            <input type="hidden" name="id" value="<%= idDesayuno %>">
+                        <form action="AdminCRUD.jsp" method="post" onsubmit="return confirm('¿Eliminar desayuno del <%= fecha%>?');">
+                            <input type="hidden" name="id" value="<%= desayuno.id%>">
+                            <input type="hidden" name="fecha" value="<%= fecha%>">
                             <input type="hidden" name="accion" value="eliminar">
                             <input type="hidden" name="tipo" value="Desayuno">
                             <button class="btn btn-danger btn-sm">🗑️</button>
                         </form>
                     </div>
-                    <% } else { %>
+                    <% } else {%>
                     <form method="post" action="AgregarMenu.jsp">
-                        <input type="hidden" name="fecha" value="<%= fecha %>">
+                        <input type="hidden" name="fecha" value="<%= fecha%>">
                         <input type="hidden" name="tipo" value="Desayuno">
                         <button type="submit" class="btn btn-outline-primary btn-sm">Agregar desayuno</button>
                     </form>
                     <% } %>
 
-                    <% if (hayComida) { %>
+                    <%-- COMIDA --%>
+                    <%
+                        MenuDelDia comida = (dia != null) ? dia.get("Comida") : null;
+                        if (comida != null) {
+                    %>
                     <div class="registro text-danger">
-                        🍽 <strong style="color:#d93025;">Comida:</strong> <%= comida %>
+                        🍽 <strong>Comida:</strong> <%= comida.platoPrincipal%>
                         <form method="get" action="AgregarMenu.jsp">
-                            <input type="hidden" name="id" value="<%= idComida %>">
+                            <input type="hidden" name="id" value="<%= comida.id%>">
                             <button class="btn btn-warning btn-sm">✏️</button>
                         </form>
-                        <form action="AdminCRUD.jsp" method="post" onsubmit="return confirm('¿Eliminar comida del <%= fecha %>?');">
-                            <input type="hidden" name="id" value="<%= idComida %>">
-                            <input type="hidden" name="fecha" value="<%= fecha %>">
+                        <form action="AdminCRUD.jsp" method="post" onsubmit="return confirm('¿Eliminar comida del <%= fecha%>?');">
+                            <input type="hidden" name="id" value="<%= comida.id%>">
+                            <input type="hidden" name="fecha" value="<%= fecha%>">
                             <input type="hidden" name="accion" value="eliminar">
                             <input type="hidden" name="tipo" value="Comida">
                             <button class="btn btn-danger btn-sm">🗑️</button>
                         </form>
                     </div>
-                    <% } else { %>
+                    <% } else {%>
                     <form method="post" action="AgregarMenu.jsp">
-                        <input type="hidden" name="fecha" value="<%= fecha %>">
+                        <input type="hidden" name="fecha" value="<%= fecha%>">
                         <input type="hidden" name="tipo" value="Comida">
                         <button type="submit" class="btn btn-outline-danger btn-sm">Agregar comida</button>
                     </form>
@@ -157,7 +130,6 @@
                 <%
                         cal.add(Calendar.DATE, 1);
                     }
-                    con.cerrarConexion();
                 %>
             </div>
         </div>

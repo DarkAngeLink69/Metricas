@@ -12,6 +12,9 @@
         <div class="container-fluid">
             <div class="row">
                 <div class="col-sm-4 col-sm-offset-4">
+                    <hr><!-- comment -->
+                    <hr><!-- comment -->
+                    <hr>
                     <h2><center>Comedor UACM</center></h2>
                     <hr>
                         <%

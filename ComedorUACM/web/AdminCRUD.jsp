@@ -16,9 +16,25 @@
             String postre = request.getParameter("postre");
             String plantel = request.getParameter("plantel");
 
-            String insert = "INSERT INTO menu_deldia (fecha, tipo, plato_principal, guarnicion, entrada, acompanamiento, bebida, postre, plantel) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            con.executeUpdate(insert, fecha, tipo, plato, guarnicion, entrada, acompanamiento, bebida, postre, plantel);
+            // Validar campos no nulos, no vacíos y longitud <= 255
+            if (fecha != null && !fecha.trim().isEmpty() && fecha.length() <= 255
+                    && tipo != null && !tipo.trim().isEmpty() && tipo.length() <= 255
+                    && plato != null && !plato.trim().isEmpty() && plato.length() <= 255
+                    && guarnicion != null && !guarnicion.trim().isEmpty() && guarnicion.length() <= 255
+                    && entrada != null && !entrada.trim().isEmpty() && entrada.length() <= 255
+                    && acompanamiento != null && !acompanamiento.trim().isEmpty() && acompanamiento.length() <= 255
+                    && bebida != null && !bebida.trim().isEmpty() && bebida.length() <= 255
+                    && postre != null && !postre.trim().isEmpty() && postre.length() <= 255
+                    && plantel != null && !plantel.trim().isEmpty() && plantel.length() <= 255) {
+
+                String insert = "INSERT INTO menu_deldia (fecha, tipo, plato_principal, guarnicion, entrada, acompanamiento, bebida, postre, plantel) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                con.executeUpdate(insert, fecha, tipo, plato, guarnicion, entrada, acompanamiento, bebida, postre, plantel);
+
+            } else {
+                out.println("<p style='color:red;'>Error: Todos los campos son obligatorios y deben tener máximo 255 caracteres.</p>");
+                return;
+            }
 
         } else if ("eliminar".equals(accion)) {
             String id = request.getParameter("id");
@@ -27,11 +43,9 @@
             String plantel = (String) session.getAttribute("plantel");
 
             if (id != null && fecha != null && tipo != null && plantel != null) {
-                // ? Primero elimina los votos asociados al menú
                 String deleteVotos = "DELETE FROM votos_menu WHERE id_menu = ?";
                 con.executeUpdate(deleteVotos, id);
 
-                // ? Luego elimina el menú
                 String deleteMenu = "DELETE FROM menu_deldia WHERE id = ? AND fecha = ? AND tipo = ? AND plantel = ?";
                 con.executeUpdate(deleteMenu, id, fecha, tipo, plantel);
             }
@@ -47,16 +61,41 @@
             String postre = request.getParameter("postre");
             String plantel = request.getParameter("plantel");
 
-            String update = "UPDATE menu_deldia SET " +
-                            "plato_principal = ?, guarnicion = ?, entrada = ?, acompanamiento = ?, bebida = ?, postre = ? " +
-                            "WHERE fecha = ? AND tipo = ? AND plantel = ?";
-            con.executeUpdate(update, plato, guarnicion, entrada, acompanamiento, bebida, postre, fecha, tipo, plantel);
+            if (fecha != null && !fecha.trim().isEmpty() && fecha.length() <= 255
+                    && tipo != null && !tipo.trim().isEmpty() && tipo.length() <= 255
+                    && plato != null && !plato.trim().isEmpty() && plato.length() <= 255
+                    && guarnicion != null && !guarnicion.trim().isEmpty() && guarnicion.length() <= 255
+                    && entrada != null && !entrada.trim().isEmpty() && entrada.length() <= 255
+                    && acompanamiento != null && !acompanamiento.trim().isEmpty() && acompanamiento.length() <= 255
+                    && bebida != null && !bebida.trim().isEmpty() && bebida.length() <= 255
+                    && postre != null && !postre.trim().isEmpty() && postre.length() <= 255
+                    && plantel != null && !plantel.trim().isEmpty() && plantel.length() <= 255) {
+
+                String update = "UPDATE menu_deldia SET "
+                        + "plato_principal = ?, guarnicion = ?, entrada = ?, acompanamiento = ?, bebida = ?, postre = ? "
+                        + "WHERE fecha = ? AND tipo = ? AND plantel = ?";
+                con.executeUpdate(update, plato, guarnicion, entrada, acompanamiento, bebida, postre, fecha, tipo, plantel);
+
+            } else {
+                out.println("<p style='color:red;'>Error: Todos los campos son obligatorios y deben tener máximo 255 caracteres.</p>");
+                return;
+            }
         }
 
     } catch (SQLException e) {
-        out.println("<p>Error en la operación: " + e.getMessage() + "</p>");
-    } finally {
-        con.cerrarConexion();
-        response.sendRedirect("AdminMenuDelDia.jsp");
+        e.printStackTrace();
+
+        String mensajeError = "Error en la operacion: asegurate de que todos los campos tengan maximo 255 caracteres.";
+
+        String url = "AgregarMenu.jsp?"
+                + "error=" + java.net.URLEncoder.encode(mensajeError, "UTF-8")
+                + "&fecha=" + java.net.URLEncoder.encode(request.getParameter("fecha"), "UTF-8")
+                + "&tipo=" + java.net.URLEncoder.encode(request.getParameter("tipo"), "UTF-8")
+                + "&id=" + java.net.URLEncoder.encode(request.getParameter("id") != null ? request.getParameter("id") : "", "UTF-8");
+
+        response.sendRedirect(url);
+        return;
     }
+
+    response.sendRedirect("AdminMenuDelDia.jsp");
 %>

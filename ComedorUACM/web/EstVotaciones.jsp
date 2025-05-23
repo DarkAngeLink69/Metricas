@@ -1,104 +1,97 @@
-<%@page import="java.util.*"%>
-<%@page import="java.text.SimpleDateFormat"%>
-<%@page import="java.sql.*"%>
-<jsp:useBean id="con1" class="controlador.Conexion2" scope="page" />
+<%@page import="modelo.PropuestaDAO"%>
+<%@page import="modelo.PropuestaDAO.Propuesta"%>
+<%@page import="java.util.*, java.text.SimpleDateFormat"%>
+<%@page import="java.sql.SQLException"%>
 
 <%
     Integer id_usuario = (Integer) session.getAttribute("id_usuario");
     String plantel = (String) session.getAttribute("plantel");
-
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    String hoy = sdf.format(new java.util.Date());
-
     if (id_usuario == null) {
-        out.println("<p style='color:red;'>No has iniciado sesión correctamente.</p>");
+        response.sendRedirect("Login.jsp");
         return;
     }
-
-    // Obtener votos del usuario
-    String sqlVotos = "SELECT p.tipo, p.fecha FROM votos_propuestas v JOIN propuestas_menu p ON v.propuesta_id = p.id WHERE v.usuario_id = ?";
-    con1.setRs(sqlVotos, id_usuario);
-    ResultSet rsVotos = con1.getRs();
-    Map votosPorFecha = new HashMap(); // Map<String, Set<String>>
-    while (rsVotos.next()) {
-        String fechaVoto = rsVotos.getString("fecha");
-        String tipoVoto = rsVotos.getString("tipo");
-
-        Set tipos = (Set) votosPorFecha.get(fechaVoto); // Set<String>
-        if (tipos == null) {
-            tipos = new HashSet();
-            votosPorFecha.put(fechaVoto, tipos);
-        }
-        tipos.add(tipoVoto);
+    if (plantel == null) {
+        plantel = "Desconocido";
     }
-    rsVotos.close();
 
-    // --- Dar like a propuesta ---
-    String votarId = request.getParameter("votarId");
-    String tipoPropuesta = request.getParameter("tipoPropuesta");
-    String fechaPropuesta = request.getParameter("fechaPropuesta");
+    PropuestaDAO dao = new PropuestaDAO();
+    String mensajeError = null;
+    String mensajeOk = null;
 
-    if (votarId != null && tipoPropuesta != null && fechaPropuesta != null) {
-        Set yaVotados = (Set) votosPorFecha.get(fechaPropuesta);
-        if (yaVotados == null || !yaVotados.contains(tipoPropuesta)) {
-            String sqlLike = "INSERT IGNORE INTO votos_propuestas (propuesta_id, usuario_id) VALUES (?, ?)";
-            con1.executeUpdate(sqlLike, votarId, id_usuario);
-            // También actualizamos el mapa para reflejar el nuevo voto
-            if (yaVotados == null) {
-                yaVotados = new HashSet();
-                votosPorFecha.put(fechaPropuesta, yaVotados);
+    if ("POST".equalsIgnoreCase(request.getMethod())) {
+        String votarIdStr = request.getParameter("votarId");
+        if (votarIdStr != null) {
+            try {
+                int votarId = Integer.parseInt(votarIdStr);
+                boolean exito = dao.votarPropuesta(votarId, id_usuario);
+                if (exito) {
+                    mensajeOk = "Voto registrado con éxito.";
+                } else {
+                    mensajeError = "Ya votaste por esta propuesta o hubo un error.";
+                }
+            } catch (NumberFormatException e) {
+                mensajeError = "ID de propuesta inválido.";
+            } catch (SQLException e) {
+                mensajeError = "Error al registrar voto: " + e.getMessage();
             }
-            yaVotados.add(tipoPropuesta);
-        } else {
-            out.println("<p style='color:red;'>Ya votaste por un(a) " + tipoPropuesta + " para " + fechaPropuesta + ".</p>");
         }
     }
-
-    // Mostrar propuestas disponibles
-    String sql = "SELECT p.*, (SELECT COUNT(*) FROM votos_propuestas v WHERE v.propuesta_id = p.id) AS likes " +
-                 "FROM propuestas_menu p WHERE p.plantel = ? AND DATE_ADD(p.fecha, INTERVAL 1 DAY) >= ? ORDER BY p.fecha ASC";
-    con1.setRs(sql, plantel, hoy);
-    ResultSet rs = con1.getRs();
+    List<Propuesta> propuestas = null;
+    try {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String hoy = sdf.format(new Date());
+        propuestas = dao.obtenerPropuestas(hoy, plantel, id_usuario);
+    } catch (SQLException e) {
+        mensajeError = "Error al cargar propuestas: " + e.getMessage();
+    }
 %>
 
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Votaciones</title>
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-</head>
-<body>
-<%@ include file="EstuInicio.jsp" %>
-<div class="container">
-    <h2>Vota por tu propuesta favorita</h2>
-<%
-    while (rs.next()) {
-        int propuestaId = rs.getInt("id");
-        String tipo = rs.getString("tipo");
-        String descripcion = rs.getString("descripcion");
-        String fecha = rs.getString("fecha");
-        int likes = rs.getInt("likes");
+    <head>
+        <title>Votaciones</title>
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+    </head>
+    <body>
+        <jsp:include page="EstuInicio.jsp" />
 
-        Set tiposYaVotados = (Set) votosPorFecha.get(fecha);
-        boolean yaVotoEsteTipo = tiposYaVotados != null && tiposYaVotados.contains(tipo);
-%>
-    <form method="post" style="border:1px solid #ccc; padding:10px; margin:10px;">
-        <strong><%= tipo.substring(0,1).toUpperCase() + tipo.substring(1) %>:</strong> <%= descripcion %><br>
-        <strong>Fecha:</strong> <%= fecha %><br>
-        <strong>Likes:</strong> <%= likes %><br>
-        <% if (!yaVotoEsteTipo) { %>
-            <input type="hidden" name="votarId" value="<%= propuestaId %>">
-            <input type="hidden" name="tipoPropuesta" value="<%= tipo %>">
-            <input type="hidden" name="fechaPropuesta" value="<%= fecha %>">
-            <input type="submit" value="Me gusta">
-        <% } else { %>
-            <em>Ya votaste por un(a) <%= tipo %> para esta fecha.</em>
-        <% } %>
-    </form>
-<%
-    }
-    rs.close();
-%>
-</div>
-</body>
+        <div class="container">
+            <hr>
+            <hr><!-- comment -->
+            <hr><!-- comment -->
+            <h2>Vota por tu propuesta favorita</h2>
+
+            <% if (mensajeError != null) {%>
+            <p style="color:red;"><%= mensajeError%></p>
+            <% } %>
+            <% if (mensajeOk != null) {%>
+            <p style="color:green;"><%= mensajeOk%></p>
+            <% } %>
+
+            <%
+                if (propuestas != null) {
+                    for (Propuesta p : propuestas) {
+            %>
+            <form method="post" style="border:1px solid #ccc; padding:10px; margin:10px;">
+                <strong><%= p.tipo.substring(0, 1).toUpperCase() + p.tipo.substring(1)%>:</strong> <%= p.descripcion%><br>
+                <strong>Fecha:</strong> <%= p.fecha%><br>
+                <strong>Likes:</strong> <%= p.likes%><br>
+
+                <% if (p.yaVotado) { %>
+                <em>Votaste por esta propuesta.</em>
+                <% } else if (p.yaVotoPorEseTipo) { %>
+                <!-- Ya votó por otra propuesta del mismo tipo -->
+                <input type="submit" value="Me gusta" disabled style="color: gray; cursor: not-allowed;" onclick="return false;">
+                <% } else {%>
+                <input type="hidden" name="votarId" value="<%= p.id%>">
+                <input type="submit" value="Me gusta">
+                <% } %>
+            </form>
+            <%
+                    }
+                }
+            %>
+        </div>
+
+    </body>
 </html>

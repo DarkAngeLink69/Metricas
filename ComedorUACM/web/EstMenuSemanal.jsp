@@ -54,9 +54,9 @@
 
         <div class="calendario">
             <%
-                String[] dias = {"Lunes", "Martes", "Miércoles", "Jueves", "Viernes"};
-                Calendar cal = Calendar.getInstance();
-                cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+                String[] dias = new String[] {"Lunes", "Martes", "Miércoles", "Jueves", "Viernes"};
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.set(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.MONDAY);
                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
 
                 for (int i = 0; i < 5; i++) {
@@ -67,7 +67,10 @@
                     con.setRs(sqlDesayuno, fecha, plantel);
                     ResultSet rsDes = con.getRs();
                     boolean hayDesayuno = rsDes.next();
-                    String desayuno = hayDesayuno ? rsDes.getString("plato_principal") : null;
+                    String desayuno = null;
+                    if (hayDesayuno) {
+                        desayuno = rsDes.getString("plato_principal");
+                    }
                     rsDes.close();
 
                     // Consulta comida
@@ -75,7 +78,10 @@
                     con.setRs(sqlComida, fecha, plantel);
                     ResultSet rsCom = con.getRs();
                     boolean hayComida = rsCom.next();
-                    String comida = hayComida ? rsCom.getString("plato_principal") : null;
+                    String comida = null;
+                    if (hayComida) {
+                        comida = rsCom.getString("plato_principal");
+                    }
                     rsCom.close();
             %>
             <div class="dia">
@@ -98,7 +104,7 @@
                 <% } %>
             </div>
             <%
-                    cal.add(Calendar.DATE, 1);
+                    cal.add(java.util.Calendar.DATE, 1);
                 }
                 con.cerrarConexion();
             %>
