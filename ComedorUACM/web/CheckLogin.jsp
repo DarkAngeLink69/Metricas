@@ -28,23 +28,19 @@
         sesionOk.setAttribute("id_usuario", idUsuario);
         sesionOk.setAttribute("nombre", nombre);
         sesionOk.setAttribute("rol", rol);
-        sesionOk.setAttribute("id_tipo", idTipo);
+        sesionOk.setAttribute("tipo_usuario", idTipo);  // Este es clave para Inicio.jsp
         sesionOk.setAttribute("plantel", plantel);
 
         rs.close();
         con.cerrarConexion();
 
-        if ("Admin".equalsIgnoreCase(rol)) {
-%><jsp:forward page="AdminMenuDelDia.jsp"/><%
-        } else {
-%><jsp:forward page="EstMenuDelDia.jsp"/><%
-            }
-        } else {
-            rs.close();
-            con.cerrarConexion();
+%><jsp:forward page="MenuDelDia.jsp"/><%} else {
+    rs.close();
+    con.cerrarConexion();
 %><jsp:forward page="Login.jsp">
     <jsp:param name="error" value="Usuario o contraseña incorrectos"/>
 </jsp:forward><%
     }
+
 
 %>

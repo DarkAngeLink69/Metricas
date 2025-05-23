@@ -2,6 +2,9 @@
 <%
     request.setCharacterEncoding("UTF-8");
     String accion = request.getParameter("accion");
+    String origen = request.getParameter("origen");
+    String destino = (origen != null && origen.equals("MenuSemanal")) ? "MenuSemanal.jsp" : "MenuDelDia.jsp";
+
     Conexion2 con = new Conexion2();
 
     try {
@@ -16,7 +19,6 @@
             String postre = request.getParameter("postre");
             String plantel = request.getParameter("plantel");
 
-            // Validar campos no nulos, no vacíos y longitud <= 255
             if (fecha != null && !fecha.trim().isEmpty() && fecha.length() <= 255
                     && tipo != null && !tipo.trim().isEmpty() && tipo.length() <= 255
                     && plato != null && !plato.trim().isEmpty() && plato.length() <= 255
@@ -36,6 +38,8 @@
                 return;
             }
 
+            response.sendRedirect(destino);
+
         } else if ("eliminar".equals(accion)) {
             String id = request.getParameter("id");
             String fecha = request.getParameter("fecha");
@@ -49,6 +53,8 @@
                 String deleteMenu = "DELETE FROM menu_deldia WHERE id = ? AND fecha = ? AND tipo = ? AND plantel = ?";
                 con.executeUpdate(deleteMenu, id, fecha, tipo, plantel);
             }
+
+            response.sendRedirect(destino);
 
         } else if ("editar".equals(accion)) {
             String fecha = request.getParameter("fecha");
@@ -80,6 +86,8 @@
                 out.println("<p style='color:red;'>Error: Todos los campos son obligatorios y deben tener máximo 255 caracteres.</p>");
                 return;
             }
+
+            response.sendRedirect(destino);
         }
 
     } catch (SQLException e) {
@@ -91,11 +99,10 @@
                 + "error=" + java.net.URLEncoder.encode(mensajeError, "UTF-8")
                 + "&fecha=" + java.net.URLEncoder.encode(request.getParameter("fecha"), "UTF-8")
                 + "&tipo=" + java.net.URLEncoder.encode(request.getParameter("tipo"), "UTF-8")
-                + "&id=" + java.net.URLEncoder.encode(request.getParameter("id") != null ? request.getParameter("id") : "", "UTF-8");
+                + "&id=" + java.net.URLEncoder.encode(request.getParameter("id") != null ? request.getParameter("id") : "", "UTF-8")
+                + "&origen=" + java.net.URLEncoder.encode(origen != null ? origen : "", "UTF-8"); // AÑADIDO
 
         response.sendRedirect(url);
         return;
     }
-
-    response.sendRedirect("AdminMenuDelDia.jsp");
 %>

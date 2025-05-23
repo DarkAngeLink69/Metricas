@@ -1,4 +1,4 @@
-<%@ page import="modelo.MenuDelDiaDAO, modelo.MenuDelDiaDAO.MenuDelDia" %>
+<%@ page import="modelo.MenuDelDiaDAO, modelo.MenuDelDiaDAO.MenuDelDia" %> 
 <%@ page import="java.time.LocalDate" %>
 <%@ page session="true" %>
 
@@ -26,6 +26,17 @@
     String idParam = request.getParameter("id");
     String fechaParametro = request.getParameter("fecha");
     String tipoParametro = request.getParameter("tipo");
+    String origen = request.getParameter("origen");
+
+    // Mapeo del valor lógico origen a ruta JSP válida
+    String origenURL = "MenuDelDia.jsp"; // Valor por defecto
+    if (origen != null) {
+        if ("MenuSemanal".equalsIgnoreCase(origen)) {
+            origenURL = "MenuSemanal.jsp";
+        } else if ("MenuDelDia".equalsIgnoreCase(origen)) {
+            origenURL = "MenuDelDia.jsp";
+        }
+    }
 
     MenuDelDia menu = null;
     boolean esEdicion = false;
@@ -44,19 +55,12 @@
         }
     } else {
         menu = new MenuDelDia();
-
-        if (fechaParametro != null && !fechaParametro.trim().isEmpty()) {
-            menu.fecha = fechaParametro;
-        } else {
-            menu.fecha = LocalDate.now().toString();
-        }
-
-        if (tipoParametro != null && !tipoParametro.trim().isEmpty()) {
-            menu.tipo = tipoParametro;
-        } else {
-            menu.tipo = "Desayuno";
-        }
-
+        menu.fecha = (fechaParametro != null && !fechaParametro.trim().isEmpty())
+                        ? fechaParametro
+                        : LocalDate.now().toString();
+        menu.tipo = (tipoParametro != null && !tipoParametro.trim().isEmpty())
+                        ? tipoParametro
+                        : "";
         menu.platoPrincipal = "";
         menu.guarnicion = "";
         menu.entrada = "";
@@ -65,97 +69,106 @@
         menu.postre = "";
     }
 
-    boolean bloquearFecha = (fechaParametro != null && !fechaParametro.trim().isEmpty()) || esEdicion;
+    boolean bloquearFecha = esEdicion || (fechaParametro != null && !fechaParametro.trim().isEmpty());
     boolean bloquearTipo = esEdicion || (tipoParametro != null && !tipoParametro.trim().isEmpty());
 %>
 
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8" />
-        <title><%= esEdicion ? "Editar Menú" : "Agregar Menú"%> - Plantel <%= escapeHtml(plantel)%></title>
-        <link rel="stylesheet" href="css/bootstrap.min.css" />
-    </head>
-    <body>
-        <%@ include file="AdminInicio.jsp" %>
-        <div class="container">
-            <hr />
-            <hr />
-            <h2><%= esEdicion ? "Editar Menú" : "Agregar Menú"%> - Plantel <%= escapeHtml(plantel)%></h2>
-            <%
-                String error = request.getParameter("error");
-                if (error != null && !error.trim().isEmpty()) {
-            %>
-            <div class="alert alert-danger"><%= escapeHtml(error)%></div>
-            <%
-                }
-            %>
+<head>
+    <meta charset="UTF-8" />
+    <title><%= esEdicion ? "Editar Menú" : "Agregar Menú"%> - Plantel <%= escapeHtml(plantel)%></title>
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
+</head>
+<body>
+<%@ include file="Inicio.jsp" %>
+<div class="container">
+    <hr />
+    <h2><%= esEdicion ? "Editar Menú" : "Agregar Menú"%> - Plantel <%= escapeHtml(plantel)%></h2>
 
-            <form method="post" action="AdminCRUD.jsp" accept-charset="UTF-8">
-                <div class="form-group">
-                    <label>Fecha:</label>
-                    <input type="date" name="fecha" required class="form-control"
-                           value="<%= escapeHtml(menu.fecha)%>"
-                           <%= bloquearFecha ? "readonly" : ""%> />
-                </div>
+    <%
+        String error = request.getParameter("error");
+        if (error != null && !error.trim().isEmpty()) {
+    %>
+    <div class="alert alert-danger"><%= escapeHtml(error)%></div>
+    <%
+        }
+    %>
 
-                <div class="form-group">
-                    <label>Tipo:</label>
-                    <select name="tipo" required class="form-control" <%= bloquearTipo ? "disabled" : ""%>>
-                        <option value="" disabled <%= (menu.tipo == null || menu.tipo.isEmpty()) ? "selected" : ""%>>-- Selecciona --</option>
-                        <option value="Desayuno" <%= "Desayuno".equals(menu.tipo) ? "selected" : ""%>>Desayuno</option>
-                        <option value="Comida" <%= "Comida".equals(menu.tipo) ? "selected" : ""%>>Comida</option>
-                    </select>
-                    <% if (bloquearTipo) {%>
-                    <input type="hidden" name="tipo" value="<%= escapeHtml(menu.tipo)%>" />
-                    <% }%>
-                </div>
+    <form method="post" action="AdminCRUD.jsp" accept-charset="UTF-8">
+        <input type="hidden" name="origen" value="<%= escapeHtml(origen) %>">
 
-                <div class="form-group">
-                    <label>Plato principal:</label>
-                    <input type="text" name="plato_principal" required maxlength="255" class="form-control"
-                           value="<%= escapeHtml(menu.platoPrincipal)%>" />
-                </div>
-
-                <div class="form-group">
-                    <label>Guarnición:</label>
-                    <input type="text" name="guarnicion" required maxlength="255" class="form-control"
-                           value="<%= escapeHtml(menu.guarnicion)%>" />
-                </div>
-
-                <div class="form-group">
-                    <label>Entrada:</label>
-                    <input type="text" name="entrada" required maxlength="255" class="form-control"
-                           value="<%= escapeHtml(menu.entrada)%>" />
-                </div>
-
-                <div class="form-group">
-                    <label>Acompañamiento:</label>
-                    <input type="text" name="acompanamiento" required maxlength="255" class="form-control"
-                           value="<%= escapeHtml(menu.acompanamiento)%>" />
-                </div>
-
-                <div class="form-group">
-                    <label>Bebida:</label>
-                    <input type="text" name="bebida" required maxlength="255" class="form-control"
-                           value="<%= escapeHtml(menu.bebida)%>" />
-                </div>
-
-                <div class="form-group">
-                    <label>Postre:</label>
-                    <input type="text" name="postre" required maxlength="255" class="form-control"
-                           value="<%= escapeHtml(menu.postre)%>" />
-                </div>
-
-                <input type="hidden" name="plantel" value="<%= escapeHtml(plantel)%>" />
-                <% if (esEdicion) {%>
-                <input type="hidden" name="id" value="<%= escapeHtml(idParam)%>" />
-                <% }%>
-
-                <button type="submit" name="accion" value="<%= esEdicion ? "editar" : "agregar"%>" class="btn btn-success">
-                    <%= esEdicion ? "Guardar cambios" : "Agregar"%>
-                </button>
-            </form>
+        <div class="form-group">
+            <label>Fecha:</label>
+            <input type="date" name="fecha" required class="form-control"
+                   value="<%= escapeHtml(menu.fecha)%>"
+                   <%= bloquearFecha ? "readonly" : "" %> />
         </div>
-    </body>
+
+        <div class="form-group">
+            <label>Tipo:</label>
+            <select name="tipo" required class="form-control" <%= bloquearTipo ? "disabled" : "" %>>
+                <option value="" disabled <%= (menu.tipo == null || menu.tipo.isEmpty()) ? "selected" : "" %>>-- Selecciona --</option>
+                <option value="Desayuno" <%= "Desayuno".equals(menu.tipo) ? "selected" : "" %>>Desayuno</option>
+                <option value="Comida" <%= "Comida".equals(menu.tipo) ? "selected" : "" %>>Comida</option>
+            </select>
+            <% if (bloquearTipo) { %>
+            <input type="hidden" name="tipo" value="<%= escapeHtml(menu.tipo) %>" />
+            <% } %>
+        </div>
+
+        <div class="form-group">
+            <label>Plato principal:</label>
+            <input type="text" name="plato_principal" required maxlength="255" class="form-control"
+                   value="<%= escapeHtml(menu.platoPrincipal)%>" />
+        </div>
+
+        <div class="form-group">
+            <label>Guarnición:</label>
+            <input type="text" name="guarnicion" required maxlength="255" class="form-control"
+                   value="<%= escapeHtml(menu.guarnicion)%>" />
+        </div>
+
+        <div class="form-group">
+            <label>Entrada:</label>
+            <input type="text" name="entrada" required maxlength="255" class="form-control"
+                   value="<%= escapeHtml(menu.entrada)%>" />
+        </div>
+
+        <div class="form-group">
+            <label>Acompañamiento:</label>
+            <input type="text" name="acompanamiento" required maxlength="255" class="form-control"
+                   value="<%= escapeHtml(menu.acompanamiento)%>" />
+        </div>
+
+        <div class="form-group">
+            <label>Bebida:</label>
+            <input type="text" name="bebida" required maxlength="255" class="form-control"
+                   value="<%= escapeHtml(menu.bebida)%>" />
+        </div>
+
+        <div class="form-group">
+            <label>Postre:</label>
+            <input type="text" name="postre" required maxlength="255" class="form-control"
+                   value="<%= escapeHtml(menu.postre)%>" />
+        </div>
+
+        <input type="hidden" name="plantel" value="<%= escapeHtml(plantel)%>" />
+        <% if (esEdicion) { %>
+        <input type="hidden" name="id" value="<%= escapeHtml(idParam)%>" />
+        <% } %>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" name="accion" value="<%= esEdicion ? "editar" : "agregar" %>" class="btn btn-success">
+                <%= esEdicion ? "Guardar cambios" : "Agregar" %>
+            </button>
+
+            <button type="button" class="btn btn-outline-danger" 
+                    onclick="window.location.href='<%= request.getContextPath() + "/" + origenURL %>';">
+                Cancelar
+            </button>
+        </div>
+    </form>
+</div>
+</body>
 </html>

@@ -37,5 +37,5 @@
     }
 
     con.cerrarConexion();
-    response.sendRedirect("EstMenuDelDia.jsp");
+    response.sendRedirect("MenuDelDia.jsp");
 %>
